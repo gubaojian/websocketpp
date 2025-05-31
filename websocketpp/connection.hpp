@@ -331,6 +331,10 @@ public:
     {
         m_alog->write(log::alevel::devel,"connection constructor");
     }
+    
+    ~connection() {
+        m_alog->write(log::alevel::devel,"connection destructor");
+    }
 
     /// Get a shared pointer to this component
     ptr get_shared() {

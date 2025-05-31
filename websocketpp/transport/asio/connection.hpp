@@ -676,7 +676,6 @@ protected:
         m_bufs.clear();
         m_bufs.shrink_to_fit();
 
-
         // Timer expired or the operation was aborted for some reason.
         // Whatever aborted it will be issuing the callback so we are safe to
         // return

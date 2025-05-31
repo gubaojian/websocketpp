@@ -58,6 +58,10 @@ public:
     typedef connection<config> connection_type;
     /// Type of a shared pointer to the connections this server will create
     typedef typename connection_type::ptr connection_ptr;
+    
+    /// Type of a weak pointer to the connections this server will create
+    typedef typename connection_type::weak_ptr connection_weak_ptr;
+    
 
     /// Type of the connection transport component
     typedef typename transport_type::transport_con_type transport_con_type;
