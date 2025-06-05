@@ -501,6 +501,33 @@ inline std::string prepare_header(const basic_header &h, const
     return ret;
 }
 
+/// Generate a properly sized contiguous string that encodes a full frame header
+/**
+ * Copy the basic header h and extended header e into a properly sized
+ * contiguous frame header string for the purposes of writing out to the wire.
+ *
+ * @param h The basic header to include
+ * @param e The extended header to include
+ *
+ * @return A contiguous string containing h and e
+ */
+inline std::string prepare_header_fast(const basic_header &h, const
+    extended_header &e)
+{
+    size_t len = 2 + get_header_len(h)-BASIC_HEADER_LENGTH;
+    std::string ret;
+    ret.resize(len);
+
+    char* data = ret.data();
+    data[0] = char(h.b0);
+    data[1] = char(h.b1);
+
+    // 复制剩余头部数据
+    std::memcpy(data + 2, e.bytes, len - 2);
+
+    return ret;
+}
+
 /// Extract the masking key from a frame header
 /**
  * Note that while read and written as an integer at times, this value is not

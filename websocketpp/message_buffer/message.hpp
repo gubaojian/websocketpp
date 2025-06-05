@@ -235,6 +235,16 @@ public:
         m_header = header;
     }
 
+    /// Set prepared frame header
+    /**
+     * Under normal circumstances this should not be called by end users
+     *
+     * @param header A string to set the header to.
+     */
+    void set_header(std::string && header) {
+        m_header = std::move(header);
+    }
+
     std::string const & get_extension_data() const {
         return m_extension_data;
     }
@@ -263,6 +273,16 @@ public:
      */
     void set_payload(std::string const & payload) {
         m_payload = payload;
+    }
+
+     /// Set payload data
+    /**
+     * Set the message buffer's payload to the given value.
+     *
+     * @param payload A string to set the payload to.
+     */
+    void set_payload(std::string && payload) {
+        m_payload = std::move(payload);
     }
 
     /// Set payload data

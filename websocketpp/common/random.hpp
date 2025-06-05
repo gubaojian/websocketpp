@@ -70,9 +70,11 @@ namespace lib {
 
 #ifdef _WEBSOCKETPP_CPP11_RANDOM_DEVICE_
     using std::random_device;
+    using std::mt19937;
     using std::uniform_int_distribution;
 #else
     using boost::random::random_device;
+    using boost::random::mt19937;
     using boost::random::uniform_int_distribution;
 #endif
 

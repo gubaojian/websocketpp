@@ -124,7 +124,7 @@ lib::error_code connection<config>::send(typename config::message_type::ptr msg)
         write_push(outgoing_msg);
         needs_writing = !m_write_flag && !m_send_queue.empty();
     } else {
-        outgoing_msg = m_msg_manager->get_message();
+        outgoing_msg = m_msg_manager->get_message(msg->get_opcode(), msg->get_payload().size()+32);
 
         if (!outgoing_msg) {
             return error::make_error_code(error::no_outgoing_buffers);
@@ -1807,13 +1807,20 @@ void connection<config>::write_frame() {
         // pull off all the messages that are ready to write.
         // stop if we get a message marked terminal
         message_ptr next_message = write_pop();
+        size_t batchSize = 0;
         while (next_message) {
             m_current_msgs.push_back(next_message);
+            //https://github.com/chriskohlhoff/asio/issues/203
+            //4096和8192*1kb 一次写入不能过多，再大过大底层也堆积。
+            if (batchSize > 8192) { 
+                break;
+            }
             if (!next_message->get_terminal()) {
                 next_message = write_pop();
             } else {
                 next_message = message_ptr();
             }
+            batchSize++;
         }
         
         if (m_current_msgs.empty()) {
@@ -1895,10 +1902,15 @@ void connection<config>::handle_write_frame(lib::error_code const & ec)
     bool terminal = m_current_msgs.back()->get_terminal();
 
     m_send_buffer.clear();
-    m_send_buffer.shrink_to_fit();
+    if (m_send_buffer.size() > 4096*8) {
+       m_send_buffer.shrink_to_fit();
+    }
 
     m_current_msgs.clear();
-    m_current_msgs.shrink_to_fit();
+    if (m_current_msgs.size() > 4096*4) {
+       m_current_msgs.shrink_to_fit();
+    }
+    
 
     // TODO: recycle instead of deleting
 

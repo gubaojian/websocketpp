@@ -97,7 +97,7 @@ public:
 
 #ifdef _WEBSOCKETPP_MOVE_SEMANTICS_
     /// Move constructor
-    basic(basic && other)
+    basic(basic<concurrency,names> && other)
      : m_static_channels(other.m_static_channels)
      , m_dynamic_channels(other.m_dynamic_channels)
      , m_out(other.m_out)

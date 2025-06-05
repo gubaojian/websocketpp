@@ -57,17 +57,17 @@ class int_generator {
 
         /// constructor
         //mac TODO: figure out if signed types present a range problem
-        int_generator() {}
+        int_generator() : m_gen(m_rng())  {}
 
         /// advances the engine's state and returns the generated value
         int_type operator()() {
             scoped_lock_type guard(m_lock);
-            return m_dis(m_rng);
+            return m_dis(m_gen);
         }
     private:
 
-
         lib::random_device m_rng;
+        lib::mt19937 m_gen;
         lib::uniform_int_distribution<int_type> m_dis;
 
         mutex_type m_lock;

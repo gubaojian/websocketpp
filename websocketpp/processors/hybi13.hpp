@@ -672,10 +672,10 @@ public:
 
         if (masked) {
             frame::extended_header e(o.size(),key.i);
-            out->set_header(frame::prepare_header(h,e));
+            out->set_header(std::move(frame::prepare_header_fast(h,e)));
         } else {
             frame::extended_header e(o.size());
-            out->set_header(frame::prepare_header(h,e));
+            out->set_header(std::move(frame::prepare_header_fast(h,e)));
         }
 
         out->set_prepared(true);
@@ -950,6 +950,51 @@ protected:
         return lib::error_code();
     }
 
+    void masked_copy_simd64(std::string const & i, std::string & o,
+    frame::masking_key_type key) const
+    {
+        frame::uint64_converter u64Key;
+        std::memcpy(u64Key.c, key.c, 4);
+        std::memcpy(u64Key.c + 4, key.c, 4);
+        size_t length = i.size()/8;
+        uint64_t* u64I = (uint64_t*)i.data();
+        uint64_t* u64O = (uint64_t*)o.data();
+        for(int i=0; i<length; i++){
+            u64O[i] = u64I[i] ^ u64Key.i;
+        }
+        size_t remain = i.length()%8;
+        if (remain > 0) {
+            size_t offset = i.size() - remain;
+            uint8_t* rI = (uint8_t*)(i.data() + offset);
+            uint8_t* rO = (uint8_t*)(o.data() + offset);
+            for (int i=0; i<remain; i++) {
+                rO[i] = rI[i] ^ key.c[i%4];
+            }
+        }
+    }
+
+    void masked_copy_simd32(std::string const & i, std::string & o,
+        frame::masking_key_type key) const
+    {
+        frame::uint32_converter u32Key;
+        std::memcpy(u32Key.c, key.c, 4);
+        size_t length = i.size()/4;
+        uint32_t* u32I = (uint32_t*)i.data();
+        uint32_t* u32O = (uint32_t*)o.data();
+        for(int i=0; i<length; i++){
+            u32O[i] = u32I[i] ^ u32Key.i;
+        }
+        size_t remain = i.length()%4;
+        if (remain > 0) {
+            size_t offset = i.size() - remain;
+            uint8_t* rI = (uint8_t*)(i.data() + offset);
+            uint8_t* rO = (uint8_t*)(o.data() + offset);
+            for (int i=0; i<remain; i++) {
+                rO[i] = rI[i] ^ key.c[i%4];
+            }
+        }
+    }
+
     /// Copy and mask/unmask in one operation
     /**
      * Reads input from one string and writes unmasked output to another.
@@ -961,7 +1006,20 @@ protected:
     void masked_copy (std::string const & i, std::string & o,
         frame::masking_key_type key) const
     {
-        frame::byte_mask(i.begin(),i.end(),o.begin(),key);
+
+    #ifdef _WIN64  // Windows 64位
+        masked_copy_simd64(i, o, key);
+    #elif _WIN32  // Windows 32位（包括在64位系统上运行的32位程序）
+        masked_copy_simd32(i, o, key);
+    #elif __x86_64__ || __ppc64__ || __aarch64__ || __arm64__
+        // Linux/macOS 64位 (x86_64/PowerPC/AArch64/ARM64)
+        masked_copy_simd64(i, o, key);
+    #elif __i386__ || __arm__
+        // Linux/macOS 32位 (x86/ARM)
+        masked_copy_simd32(i, o, key);
+    #else
+         frame::byte_mask(i.begin(),i.end(),o.begin(),key);
+    #endif
         // TODO: SIMD masking
     }
 
@@ -1002,11 +1060,11 @@ protected:
             key.i = m_rng();
 
             frame::extended_header e(payload.size(),key.i);
-            out->set_header(frame::prepare_header(h,e));
+            out->set_header(std::move(frame::prepare_header_fast(h,e)));
             this->masked_copy(payload,o,key);
         } else {
             frame::extended_header e(payload.size());
-            out->set_header(frame::prepare_header(h,e));
+            out->set_header(std::move(frame::prepare_header_fast(h,e)));
             std::copy(payload.begin(),payload.end(),o.begin());
         }
     
